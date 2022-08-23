@@ -1,0 +1,97 @@
+service: orders-lambda
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+  region: ap-southeast-2
+  apiGateway:
+    apiKeys:
+      - orders-api-key
+
+functions:
+  orders-api:
+    handler: orders-lambda/api.createOrder
+    role: LambdaRole
+    events:
+      - httpApi:
+          path: /order
+          method: post
+    environment:
+      QUEUE_URL: !Ref OrderProcessorQueue
+  orders-processor:
+    handler: orders-lambda/processor.processOrder
+    role: LambdaRole
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - OrderProcessorQueue
+              - Arn
+
+resources:
+  Resources:
+    LambdaRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: LambdaRole
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: LogsPolicy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                    - lambda:CreateEventSourceMapping
+                    - lambda:ListEventSourceMappings
+                    - lambda:ListFunctions
+                  Resource: "*"
+          - PolicyName: SqsPolicy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - sqs:DeleteMessage
+                    - sqs:GetQueueAttributes
+                    - sqs:ReceiveMessage
+                    - sqs:SendMessage
+                  Resource:
+                    - Fn::GetAtt:
+                        - OrderProcessorQueue
+                        - Arn
+                    - Fn::GetAtt:
+                        - OrderProcessorDeadLetterQueue
+                        - Arn
+
+    OrderProcessorQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        KmsMasterKeyId: alias/aws/sqs
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - OrderProcessorDeadLetterQueue
+              - Arn
+          maxReceiveCount: 5
+
+    OrderProcessorDeadLetterQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        KmsMasterKeyId: alias/aws/sqs
+        MessageRetentionPeriod: 1209600
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-offline

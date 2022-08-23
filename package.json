@@ -1,0 +1,26 @@
+{
+  "name": "aws-lambda-queues",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:js-kyle/aws-lambda-queues.git",
+  "author": "Kyle <kyle.martin@hotmail.co.nz>",
+  "license": "MIT",
+  "dependencies": {
+    "@apideck/better-ajv-errors": "^0.3.6",
+    "@aws-sdk/client-sqs": "^3.154.0",
+    "ajv": "^8.11.0",
+    "aws-lambda": "^1.0.7",
+    "serverless": "^3.22.0"
+  },
+  "devDependencies": {
+    "prettier": "2.7.1",
+    "serverless-offline": "^9.2.5",
+    "serverless-plugin-typescript": "^2.1.2",
+    "typescript": "^4.7.4"
+  },
+  "scripts": {
+    "dev": "./node_modules/.bin/serverless offline",
+    "deploy": "./node_modules/.bin/serverless deploy --verbose",
+    "pretty": "prettier --write ."
+  }
+}
